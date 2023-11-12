@@ -1,0 +1,27 @@
+{
+    "Bitcoin": {
+      "Bitcoin": 1.0,
+      "Ethereum": 0.8853682549,
+      "Litecoin": 0.7065850917,
+      "Cardano": 0.8550171035
+    },
+    "Ethereum": {
+      "Bitcoin": 0.8853682549,
+      "Ethereum": 1.0,
+      "Litecoin": 0.8016729455,
+      "Cardano": 0.9607931292
+    },
+    "Litecoin": {
+      "Bitcoin": 0.7065850917,
+      "Ethereum": 0.8016729455,
+      "Litecoin": 1.0,
+      "Cardano": 0.7666196611
+    },
+    "Cardano": {
+      "Bitcoin": 0.8550171035,
+      "Ethereum": 0.9607931292,
+      "Litecoin": 0.7666196611,
+      "Cardano": 1.0
+    }
+  }
+  
