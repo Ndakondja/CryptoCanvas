@@ -1,122 +1,142 @@
 <template>
-  <div>
-    <select v-model="selectedTimeFrame" @change="filterData">
-      <option value="1m">1 Month</option>
-      <option value="1y">1 Year</option>
-      <option value="5y">5 Years</option>
-    </select>
-    <div class="volatility-comparison" ref="volatilityChart"></div>
-  </div>
+  <div id="volatility-chart"></div>
 </template>
 
 <script>
 import * as d3 from 'd3'
+import axios from 'axios'
+import config from './config'
 
 export default {
-  name: 'VolatilityComparison',
+  // eslint-disable-next-line vue/multi-word-component-names
+  name: 'Volatility',
   data () {
     return {
-      selectedTimeFrame: '1m',
-      originalData: []
+      selected_coins: ['Cardano', 'XRP', 'Litecoin', 'Ethereum', 'Bitcoin'], // Default selected coins
+      volatilityData: null
     }
   },
   mounted () {
-    this.fetchAndProcessData()
+    this.fetchVolatilityData()
   },
   methods: {
-    fetchAndProcessData () {
-      fetch('volatility_comparison.json')
-        .then(response => response.json())
-        .then(rawData => {
-          console.log('Fetched data:', rawData)
-          if (rawData && rawData.length) {
-            this.originalData = rawData
-            this.filterData()
-          } else {
-            console.error('Data is empty or not in expected format')
-          }
-        })
-        .catch(error => console.error('Error fetching data:', error))
-    },
-    filterData () {
-      const filteredData = this.filterByTimeFrame(this.originalData, this.selectedTimeFrame)
-      const transformedData = this.transformData(filteredData)
-      this.createVolatilityComparison(transformedData)
-    },
-    filterByTimeFrame (data, timeFrame) {
-      const endDate = new Date()
-      const startDate = new Date()
-      switch (timeFrame) {
-        case '1m':
-          startDate.setMonth(endDate.getMonth() - 1)
-          break
-        case '1y':
-          startDate.setFullYear(endDate.getFullYear() - 1)
-          break
-        case '5y':
-          startDate.setFullYear(endDate.getFullYear() - 5)
-          break
+    async fetchVolatilityData () {
+      try {
+        const response = await axios.get(config.backendApiUrl.concat('/getCoinVolatilityComparisons'))
+        this.drawVolatilityChart(response.data)
+      } catch (error) {
+        console.error('Error fetching volatility data:', error)
       }
-      return data.filter(d => new Date(d.date) >= startDate && new Date(d.date) <= endDate)
     },
-    transformData (rawData) {
-      const groupedData = d3.groups(rawData, d => d.name)
-        .map(([name, values]) => ({ name, values }))
-      return groupedData
-    },
-    createVolatilityComparison (data) {
-      d3.select(this.$refs.volatilityChart).selectAll('*').remove()
+    drawVolatilityChart (data) {
+      // Parse data
+      const parseTime = d3.timeParse('%a, %d %b %Y %H:%M:%S GMT')
 
-      const margin = { top: 10, right: 30, bottom: 30, left: 50 }
-      const width = 460 - margin.left - margin.right
-      const height = 400 - margin.top - margin.bottom
+      data.forEach(d => {
+        d.date = parseTime(d.Date) // Parse the date
+        console.log(d.date) // Log to see if the date is parsed correctly
+        d.value = +d.Volatility
+      })
 
-      const svg = d3.select(this.$refs.volatilityChart)
+      // Define dimensions and margins
+      const margin = { top: 10, right: 80, bottom: 30, left: 50 }
+      const width = 960 - margin.left - margin.right
+      const height = 500 - margin.top - margin.bottom
+
+      // Remove any existing SVG to avoid overlapping charts
+      d3.select('#volatility-chart').select('svg').remove()
+
+      // Append the svg object
+      const svg = d3.select('#volatility-chart')
         .append('svg')
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom)
         .append('g')
-        .attr('transform', `translate(${margin.left}, ${margin.top})`)
+        .attr('transform', `translate(${margin.left},${margin.top})`)
 
-      // Add X axis --> it is a date format
-      const x = d3.scaleTime()
-        .domain(d3.extent(this.originalData, d => new Date(d.date)))
-        .range([0, width])
+      // Add X & Y scales and axes
+      const x = d3.scaleTime().range([0, width])
+      const y = d3.scaleLinear().range([height, 0])
+
+      // Scale the range of the data
+      x.domain(d3.extent(data, d => d.date))
+      y.domain([0, d3.max(data, d => d.value)])
+
+      // Define the line
+      const valueline = d3.line()
+        .x(d => x(d.date))
+        .y(d => y(d.value))
+
+      // Add the valueline path for each coin
+      // eslint-disable-next-line camelcase, no-undef
+      this.selected_coins.forEach(coin => {
+        svg.append('path')
+          .data([data.filter(d => d.coin === coin)])
+          .attr('class', 'line')
+          .attr('d', valueline)
+          .style('stroke' /* assign color based on coin */)
+      })
+
+      // Add the X Axis
       svg.append('g')
-        .attr('transform', `translate(0, ${height})`)
+        .attr('transform', `translate(0,${height})`)
         .call(d3.axisBottom(x))
 
-      // Add Y axis
-      const y = d3.scaleLinear()
-        .domain([0, d3.max(this.originalData, d => +d.value)])
-        .range([height, 0])
+      // Add the Y Axis
       svg.append('g')
         .call(d3.axisLeft(y))
 
-      // Color scale
-      const color = d3.scaleOrdinal(d3.schemeCategory10)
+      // Add tooltip
+      const tooltip = d3.select('#volatility-chart')
+        .append('div')
+        .style('opacity', 0)
+        .attr('class', 'tooltip')
+        .style('background-color', 'white')
+        .style('border', 'solid')
+        .style('border-width', '2px')
+        .style('border-radius', '5px')
+        .style('padding', '5px')
+        .style('position', 'absolute')
 
-      // Draw the line for each group
-      data.forEach((crypto) => {
-        const line = d3.line()
-          .x(d => x(new Date(d.date)))
-          .y(d => y(+d.value))
+      // Tooltip event handlers
+      const mouseover = function (event, d) {
+        tooltip.style('opacity', 1)
+        d3.select(this).style('stroke', 'black')
+      }
 
-        svg.append('path')
-          .datum(crypto.values)
-          .attr('fill', 'none')
-          .attr('stroke', color(crypto.name))
-          .attr('stroke-width', 1.5)
-          .attr('d', line)
-      })
+      const mousemove = function (event, d) {
+        if (d.date) {
+          tooltip.html('Date: ' + d.date.toISOString().substring(0, 10) + '<br>Volatility: ' + d.value.toFixed(2))
+            .style('left', (event.x / 2) + 'px')
+            .style('top', (event.y / 2 - 30) + 'px')
+        }
+      }
+
+      const mouseleave = function (event, d) {
+        tooltip.style('opacity', 0)
+        d3.select(this).style('stroke', 'none')
+      }
+
+      // Add the points with tooltips
+      svg.selectAll('dot')
+        .data(data)
+        .enter().append('circle')
+        .attr('r', 5)
+        .attr('cx', d => x(d.date))
+        .attr('cy', d => y(d.value))
+        .on('mouseover', mouseover)
+        .on('mousemove', mousemove)
+        .on('mouseleave', mouseleave)
     }
   }
 }
 </script>
 
-<style scoped>
-.volatility-comparison {
-  width: 100%;
-  height: 400px;
+<style>
+/* Add styles for your chart and tooltip */
+.tooltip {
+  position: absolute;
+  text-align: center;
+  transition: opacity 0.3s;
 }
 </style>

@@ -1,51 +1,63 @@
+<!-- eslint-disable no-multiple-empty-lines -->
 <template>
-  <div class="correlation-matrix" ref="correlationMatrix"></div>
+  <div id="heatmap"></div>
 </template>
 
 <script>
 import * as d3 from 'd3'
+import axios from 'axios'
+import config from './config'
 
 export default {
-  name: 'CorrelationMatrix',
+  // eslint-disable-next-line vue/multi-word-component-names
+  name: 'Heatmap',
   mounted () {
-    fetch('correlation_matrix.json')
-      .then(response => response.json())
-      .then(data => {
-        this.createCorrelationMatrix(data)
-      })
-      .catch(error => console.error('Error fetching data:', error))
+    this.fetchCorrelationMatrix()
   },
   methods: {
-    createCorrelationMatrix (data) {
-      const margin = { top: 20, right: 20, bottom: 20, left: 20 }
-      const width = 400 - margin.left - margin.right
+    async fetchCorrelationMatrix () {
+      try {
+        const response = await axios.get(config.backendApiUrl.concat('/getCorrelationMatrix'))
+        this.drawHeatmap(response.data.matrix, response.data.labels)
+      } catch (error) {
+        console.error('Error fetching correlation matrix:', error)
+      }
+    },
+    drawHeatmap (matrix, labels) {
+      // Define the dimensions and margins for the heatmap
+      const margin = { top: 80, right: 80, bottom: 80, left: 80 }
+      const width = 1000 - margin.left - margin.right
       const height = 400 - margin.top - margin.bottom
 
-      // Append SVG object to the DOM
-      const svg = d3.select(this.$refs.correlationMatrix)
+      // Remove any existing SVG to avoid overlapping heatmaps
+      d3.select('#heatmap').select('svg').remove()
+
+      // Append the svg object to the body of the page
+      const svg = d3.select('#heatmap')
         .append('svg')
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom)
         .append('g')
-        .attr('transform', `translate(${margin.left}, ${margin.top})`)
+        .attr('transform', `translate(${margin.left},${margin.top})`)
 
-      // Create scales
+      // Build X scales and axis
       const x = d3.scaleBand()
         .range([0, width])
-        .domain(Object.keys(data))
+        .domain(labels)
         .padding(0.05)
-
       svg.append('g')
-        .attr('transform', `translate(0, ${height})`)
+        .style('font-size', 15)
+        .attr('transform', `translate(0,${height})`)
         .call(d3.axisBottom(x).tickSize(0))
         .select('.domain').remove()
 
+      // Build Y scales and axis
       const y = d3.scaleBand()
         .range([height, 0])
-        .domain(Object.keys(data))
+        .domain(labels)
         .padding(0.05)
-
       svg.append('g')
+        .style('font-size', 15)
         .call(d3.axisLeft(y).tickSize(0))
         .select('.domain').remove()
 
@@ -54,28 +66,65 @@ export default {
         .interpolator(d3.interpolateInferno)
         .domain([0, 1])
 
-      // Create the squares
+      // create a tooltip
+      const tooltip = d3.select('#heatmap')
+        .append('div')
+        .style('opacity', 0)
+        .attr('class', 'tooltip')
+        .style('background-color', 'white')
+        .style('border', 'solid')
+        .style('border-width', '2px')
+        .style('border-radius', '5px')
+        .style('padding', '5px')
+        .style('position', 'absolute')
+
+      // Three functions that change the tooltip when user hovers, moves, or leaves a cell
+      const mouseover = function (event, d) {
+        tooltip.style('opacity', 1)
+        d3.select(this)
+          .style('stroke', 'black')
+          .style('opacity', 1)
+      }
+      const mousemove = function (event, d) {
+        tooltip.html('Correlation: ' + d.value.toFixed(2))
+          .style('left', (event.x) + 'px')
+          .style('top', (event.y) + 'px')
+      }
+      const mouseleave = function (event, d) {
+        tooltip.style('opacity', 0)
+        d3.select(this)
+          .style('stroke', 'none')
+          .style('opacity', 0.8)
+      }
+
+      // Add the squares
       svg.selectAll()
-        .data(Object.entries(data).flatMap(([key, value]) => {
-          return Object.keys(value).map(subKey => {
-            return { group1: key, group2: subKey, value: value[subKey] }
-          })
-        }))
+        .data(matrix.flatMap((row, i) => row.map((value, j) => ({ row: labels[i], column: labels[j], value }))))
         .enter()
         .append('rect')
-        .attr('x', d => x(d.group1))
-        .attr('y', d => y(d.group2))
+        .attr('x', d => x(d.column))
+        .attr('y', d => y(d.row))
+        .attr('rx', 4)
+        .attr('ry', 4)
         .attr('width', x.bandwidth())
         .attr('height', y.bandwidth())
         .style('fill', d => myColor(d.value))
+        .style('stroke-width', 4)
+        .style('stroke', 'none')
+        .style('opacity', 0.8)
+        .on('mouseover', mouseover)
+        .on('mousemove', mousemove)
+        .on('mouseleave', mouseleave)
     }
   }
 }
+
 </script>
 
-<style scoped>
-.correlation-matrix {
-  width: 100%;
-  height: 400px;
+<style>
+.tooltip {
+  position: absolute;
+  text-align: center;
+  transition: opacity 0.3s;
 }
 </style>

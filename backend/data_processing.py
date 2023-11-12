@@ -115,7 +115,6 @@ def compute_bitcoin_correlation(selected_coins, start_date, end_date):
             
             # Merge the dataframes on 'Date'
             merged_df = filtered_bitcoin_df.merge(filtered_coin_df[['Date', 'Close']], on='Date', how='outer', suffixes=('', f'_{coin}'))
-            
             # Fill NaNs with 0
             merged_df[f'Close_{coin}'].fillna(0, inplace=True)
             
@@ -125,19 +124,17 @@ def compute_bitcoin_correlation(selected_coins, start_date, end_date):
     # Compute the correlation matrix
     correlation_matrix = crypto_close_prices.corr()
 
+
     # Check if 'Bitcoin' exists in the columns
     if 'Bitcoin' in correlation_matrix.columns:
         # Extract the correlation values for Bitcoin
-        bitcoin_correlation = correlation_matrix['Bitcoin'].drop('Bitcoin')  # Drop self-correlation
-        return bitcoin_correlation
+        return correlation_matrix
     else:
         raise ValueError("Bitcoin data not found. Ensure 'coin_Bitcoin.csv' is present and contains the required data.")
 
 
    
 
-# Example usage:
-# Usage
 directory_path = "crypto_data"
 data = load_data(directory_path)
 def compute_rolling_volatility(selected_coins, start_date, end_date, window=20):
@@ -173,49 +170,28 @@ def compute_rolling_volatility(selected_coins, start_date, end_date, window=20):
 
     # Compute rolling volatility
     rolling_volatility = crypto_returns.rolling(window).std()
-
+    rolling_volatility = rolling_volatility.dropna()
     return rolling_volatility
 
-def plot_volatility_comparison():
-    selected_coins = ["Aave", "Cardano", "XRP", "Cosmos", "Ethereum"]  
+
+
+def volatility():
+    selected_coins = ["Cardano", "XRP", "Litecoin", "Ethereum", "Bitcoin"] 
     start_date = "2021-01-01"
-    end_date = "2021-12-31"
-    rolling_volatility = compute_rolling_volatility(selected_coins, start_date, end_date)
-
-    plt.figure(figsize=(12, 6))
-
-    for coin in selected_coins:
-        plt.plot(rolling_volatility.index, rolling_volatility[coin], label=f'{coin} Volatility')
-
-    plt.title('Volatility Comparison')
-    plt.xlabel('Date')
-    plt.ylabel('Volatility (Rolling Std Dev)')
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    priceVolatility = "volatility.png"
-    plt.savefig(priceVolatility)
-    plt.close()
-
-# You can call the function to visualize the volatility comparison
-plot_volatility_comparison()
-
-def generate_heatmap():
+    end_date = "2021-12-31" 
+    volatility= compute_rolling_volatility(selected_coins,start_date,end_date) 
+    return volatility
     
-
-    selected_coins = ["Aave", "Cardano", "XRP", "Cosmos", "Ethereum"]
+def correlationMatrix():
+    selected_coins = ["Cardano", "XRP", "Litecoin", "Ethereum", "Bitcoin"] 
     start_date = "2021-01-01"
-    end_date = "2021-12-31"
+    end_date = "2021-12-31" 
     correlations = compute_bitcoin_correlation(selected_coins, start_date, end_date)
+    return correlations
 
-    correlations_df = correlations.to_frame(name='Bitcoin')
-    print(correlations_df.shape)
 
-    plt.figure(figsize=(14, 10))
-    sns.heatmap(correlations_df, annot=True, cmap="coolwarm", vmin=-1, vmax=1)
-    plt.title("Correlation Heatmap between Bitcoin and Altcoins")
-    heatmap_filename = "heatmap.png"
-    plt.savefig(heatmap_filename)
-    plt.close()
-    
-    return "Heatmap generated and saved!"
+
+
+
+
+
