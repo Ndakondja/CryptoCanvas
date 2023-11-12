@@ -140,6 +140,66 @@ def compute_bitcoin_correlation(selected_coins, start_date, end_date):
 # Usage
 directory_path = "crypto_data"
 data = load_data(directory_path)
+def compute_rolling_volatility(selected_coins, start_date, end_date, window=20):
+    """
+    Compute the rolling volatility for the selected coins within the given date range.
+
+    Args:
+    - selected_coins (list): List of selected coin names.
+    - start_date (str): Start date in the format 'YYYY-MM-DD'.
+    - end_date (str): End date in the format 'YYYY-MM-DD'.
+    - window (int): Rolling window for computing volatility. Default is 20 days.
+
+    Returns:
+    - DataFrame: Rolling volatilities of the selected coins.
+    """
+    global data_cache
+
+    # Prepare a DataFrame for closing prices
+    crypto_close_prices = pd.DataFrame()
+
+    for coin in selected_coins:
+        file_name = "coin_" + coin + ".csv"
+        coin_df = data_cache.get(file_name)
+      
+        if coin_df is not None:
+            filtered_coin_df = coin_df[(coin_df['Date'] >= start_date) & (coin_df['Date'] <= end_date)]
+            filtered_coin_df.loc[:, 'Date'] = pd.to_datetime(filtered_coin_df['Date'])
+            
+            crypto_close_prices[coin] = filtered_coin_df.set_index('Date')['Close']
+
+    # Compute daily returns
+    crypto_returns = crypto_close_prices.pct_change().dropna()
+
+    # Compute rolling volatility
+    rolling_volatility = crypto_returns.rolling(window).std()
+
+    return rolling_volatility
+
+def plot_volatility_comparison():
+    selected_coins = ["Aave", "Cardano", "XRP", "Cosmos", "Ethereum"]  
+    start_date = "2021-01-01"
+    end_date = "2021-12-31"
+    rolling_volatility = compute_rolling_volatility(selected_coins, start_date, end_date)
+
+    plt.figure(figsize=(12, 6))
+
+    for coin in selected_coins:
+        plt.plot(rolling_volatility.index, rolling_volatility[coin], label=f'{coin} Volatility')
+
+    plt.title('Volatility Comparison')
+    plt.xlabel('Date')
+    plt.ylabel('Volatility (Rolling Std Dev)')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    priceVolatility = "volatility.png"
+    plt.savefig(priceVolatility)
+    plt.close()
+
+# You can call the function to visualize the volatility comparison
+plot_volatility_comparison()
+
 def generate_heatmap():
     
 
