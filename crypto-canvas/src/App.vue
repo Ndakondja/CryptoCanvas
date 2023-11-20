@@ -18,13 +18,29 @@
           <v-list-item-content>
             <v-list-item-title>Market Overview</v-list-item-title>
           </v-list-item-content>
+          <v-list-item-content>
+            <v-list-item-title>Price Chart</v-list-item-title>
+          </v-list-item-content>
         </v-list-item>
       </v-list>
     </v-navigation-drawer>
 
-    <!-- App Bar (Title Bar) -->
     <v-app-bar app>
       <v-toolbar-title>Crypto Canvas Dashboard</v-toolbar-title>
+      <v-select
+        v-model="selectedTimeRange"
+        :items="['Last 6 Months', 'Last 12 Months', 'Last 24 Months', 'Last 48 Months']"
+        label="Select Time Range"
+        style="max-width: 180px;"
+      ></v-select>
+      <v-select
+        v-model="selectedCoins"
+        :items="availableCoins"
+        label="Select Coins"
+        multiple
+        dense
+        style="max-width: 500px;"
+      ></v-select>
     </v-app-bar>
 
     <!-- Main Content -->
@@ -35,8 +51,8 @@
         <BitcoinHalving />
       </div>
       <div v-if="currentTab === 'MarketOverview'">
-        <!-- Placeholder for Market Overview content -->
-        <h2>Market Overview Content Goes Here</h2>
+        <PriceChart :selectedTimeRange="selectedTimeRange" :selectedCoins="selectedCoins" />
+        <MarketCapTreeMap :selectedTimeRange="selectedTimeRange" :selectedCoins="selectedCoins" />
       </div>
     </v-main>
   </v-app>
@@ -46,17 +62,34 @@
 import CorrelationMatrix from './components/CorrelationMatrix.vue'
 import VolatilityComparison from './components/VolatilityComparison.vue'
 import BitcoinHalving from './components/BitcoinHalving.vue'
+import PriceChart from './components/PriceOverTime.vue'
+import MarketCapTreeMap from './components/MarketCapTreeMap.vue'
 
 export default {
   name: 'App',
   components: {
     CorrelationMatrix,
     VolatilityComparison,
-    BitcoinHalving
+    BitcoinHalving,
+    PriceChart,
+    MarketCapTreeMap
   },
   data () {
     return {
-      currentTab: 'VolatilityComparison'
+      currentTab: 'VolatilityComparison',
+      selectedTimeRange: 'Last 6 Months',
+      selectedCoins: ['Bitcoin', 'Ethereum', 'XRP'],
+      availableCoins: ['Bitcoin', 'Ethereum', 'XRP', 'Litecoin', 'Cardano']
+    }
+  },
+  watch: {
+    selectedTimeRange (newVal) {
+      console.log('Selected Time Range:', newVal)
+      // Additional logic to handle the change in time range
+    },
+    selectedCoins (newVal) {
+      console.log('Selected Coins:', newVal)
+      // Additional logic to handle the change in time range
     }
   }
 }

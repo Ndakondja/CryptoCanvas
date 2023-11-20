@@ -8,8 +8,12 @@
   width: calc(100% - 48px);
   max-width: calc(100% - 48px);
   margin: 24px;
+}
+.v-dialog > .v-overlay__content,
+.v-dialog > .v-overlay__content > form {
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 .v-dialog > .v-overlay__content > .v-card,
 .v-dialog > .v-overlay__content > .v-sheet,
@@ -68,7 +72,6 @@
 .v-dialog--scrollable > .v-overlay__content,
 .v-dialog--scrollable > .v-overlay__content > form {
   display: flex;
-  overflow: hidden;
 }
 .v-dialog--scrollable > .v-overlay__content > .v-card,
 .v-dialog--scrollable > .v-overlay__content > form > .v-card {

@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request  # Add 'request' to the imports
 from flask_cors import CORS
 import data_processing
 from flask import url_for
@@ -49,5 +49,33 @@ def get_heatmap():
     generate()
     # Assuming heatmap is saved as heatmap.png in the current directory
     return jsonify({"url": url_for('get_heatmap', filename='heatmap.png', _external=True)})
+
+
+@app.route('/getAllCoinData', methods=['GET'])
+def get_all_coin_data():
+    time_range = request.args.get('timeRange', '6m')
+    selected_coins = request.args.get('coins', '').split(',')
+
+    start_date, end_date = data_processing.calculate_start_date(time_range)
+
+    try:
+        combined_coin_data = data_processing.load_selected_coins_data(selected_coins, start_date, end_date)
+        return combined_coin_data.to_json(orient='table')
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/getMarketCapData', methods=['GET'])
+def get_market_cap_data():
+    time_range = request.args.get('timeRange', '6m')
+    selected_coins = request.args.get('coins', '').split(',') if request.args.get('coins') else HARDCODED_COINS
+    start_date, end_date = data_processing.calculate_start_date(time_range)
+
+    try:
+        market_cap_data = data_processing.calculate_avg_market_cap(selected_coins, start_date, end_date)
+        return jsonify(market_cap_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)
