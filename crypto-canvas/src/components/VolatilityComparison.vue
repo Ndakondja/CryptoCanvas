@@ -28,15 +28,14 @@ export default {
         console.error('Error fetching volatility data:', error)
       }
     },
-    drawVolatilityChart (data) {
-      // Parse data
+    drawVolatilityChart (rawData) {
+      // Parse data and group by coin
       const parseTime = d3.timeParse('%a, %d %b %Y %H:%M:%S GMT')
-
-      data.forEach(d => {
-        d.date = parseTime(d.Date) // Parse the date
-        console.log(d.date) // Log to see if the date is parsed correctly
-        d.value = +d.Volatility
-      })
+      const data = rawData.map(d => ({
+        coin: d.Coin,
+        date: parseTime(d.Date),
+        value: +d.Volatility
+      }))
 
       // Define dimensions and margins
       const margin = { top: 10, right: 80, bottom: 30, left: 50 }
@@ -57,24 +56,25 @@ export default {
       // Add X & Y scales and axes
       const x = d3.scaleTime().range([0, width])
       const y = d3.scaleLinear().range([height, 0])
-
-      // Scale the range of the data
       x.domain(d3.extent(data, d => d.date))
       y.domain([0, d3.max(data, d => d.value)])
 
-      // Define the line
+      // Define the line generator
       const valueline = d3.line()
         .x(d => x(d.date))
         .y(d => y(d.value))
 
+      // Create a color scale
+      const color = d3.scaleOrdinal(d3.schemeCategory10)
+
       // Add the valueline path for each coin
-      // eslint-disable-next-line camelcase, no-undef
       this.selected_coins.forEach(coin => {
         svg.append('path')
-          .data([data.filter(d => d.coin === coin)])
+          .datum(data.filter(d => d.coin === coin))
           .attr('class', 'line')
           .attr('d', valueline)
-          .style('stroke' /* assign color based on coin */)
+          .style('stroke', color(coin))
+          .style('fill', 'none')
       })
 
       // Add the X Axis
@@ -85,58 +85,96 @@ export default {
       // Add the Y Axis
       svg.append('g')
         .call(d3.axisLeft(y))
+        // ...after your axes have been appended to the SVG
 
-      // Add tooltip
-      const tooltip = d3.select('#volatility-chart')
-        .append('div')
-        .style('opacity', 0)
+      // Add X axis label:
+      svg.append('text')
+        .attr('text-anchor', 'end')
+        .attr('x', width / 2 + margin.left)
+        .attr('y', height + margin.top + 20)
+        .text('Months')
+
+      // Add Y axis label:
+      svg.append('text')
+        .attr('text-anchor', 'end')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', -margin.left + 20)
+        .attr('x', -margin.top - height / 2 + 20)
+        .text('Volatility')
+
+      // Tooltip logic (assuming you have CSS styles defined for .tooltip)
+      const tooltip = d3.select('#volatility-chart').append('div')
         .attr('class', 'tooltip')
-        .style('background-color', 'white')
-        .style('border', 'solid')
-        .style('border-width', '2px')
-        .style('border-radius', '5px')
-        .style('padding', '5px')
-        .style('position', 'absolute')
+        .style('opacity', 0)
 
-      // Tooltip event handlers
       const mouseover = function (event, d) {
-        tooltip.style('opacity', 1)
-        d3.select(this).style('stroke', 'black')
+        tooltip.transition()
+          .duration(200) // Time in milliseconds for the tooltip to become fully opaque
+          .style('opacity', 0.9) // Fully opaque
       }
 
       const mousemove = function (event, d) {
-        if (d.date) {
-          tooltip.html('Date: ' + d.date.toISOString().substring(0, 10) + '<br>Volatility: ' + d.value.toFixed(2))
-            .style('left', (event.x / 2) + 'px')
-            .style('top', (event.y / 2 - 30) + 'px')
-        }
+        tooltip.html('Volatility: ' + d.value + '<br/>Date: ' + d3.timeFormat('%B %d, %Y')(d.date))
+          .style('left', (event.pageX + 10) + 'px') // 10px to the right of the cursor
+          .style('top', (event.pageY - 10) + 'px') // 10px above the cursor
       }
 
       const mouseleave = function (event, d) {
-        tooltip.style('opacity', 0)
-        d3.select(this).style('stroke', 'none')
+        tooltip.transition()
+          .duration(500) // Time in milliseconds for the tooltip to become fully transparent
+          .style('opacity', 0) // Fully transparent
       }
+      const legend = svg.append('g')
+        .attr('font-family', 'sans-serif')
+        .attr('font-size', 10)
+        .attr('text-anchor', 'end')
+        .selectAll('g')
+        .data(this.selected_coins.slice().reverse()) // Assuming this.selected_coins contains the list of coins
+        .enter().append('g')
+        .attr('transform', function (d, i) { return 'translate(0,' + i * 20 + ')' })
 
-      // Add the points with tooltips
+      // Add rectangles to the legend group
+      legend.append('rect')
+        .attr('x', width - 19)
+        .attr('width', 19)
+        .attr('height', 19)
+        .attr('fill', color) // Assuming color is your d3.scaleOrdinal() for colors
+
+      // Add text labels to the legend group
+      legend.append('text')
+        .attr('x', width - 24)
+        .attr('y', 9.5)
+        .attr('dy', '0.32em')
+        .text(function (d) { return d })
+
+      // Add the scatterplot points
       svg.selectAll('dot')
         .data(data)
         .enter().append('circle')
-        .attr('r', 5)
-        .attr('cx', d => x(d.date))
-        .attr('cy', d => y(d.value))
+        .attr('r', 2)
+        .attr('cx', function (d) { return x(d.date) })
+        .attr('cy', function (d) { return y(d.value) })
+        .attr('fill', function (d) { return color(d.coin) })
         .on('mouseover', mouseover)
+        .on('mouseout', mouseleave)
         .on('mousemove', mousemove)
-        .on('mouseleave', mouseleave)
     }
+
   }
 }
 </script>
 
 <style>
-/* Add styles for your chart and tooltip */
 .tooltip {
   position: absolute;
   text-align: center;
-  transition: opacity 0.3s;
+  padding: 8px;
+  font: 12px sans-serif;
+  background: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+  border: 1px solid #333; /* Solid border for contrast */
+  border-radius: 5px;
+  pointer-events: none; /* Prevents the tooltip from capturing mouse events */
+  z-index: 10; /* Ensures the tooltip is above other elements */
 }
+
 </style>
