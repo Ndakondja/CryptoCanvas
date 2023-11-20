@@ -79,36 +79,28 @@ def clean_dataframe(df):
     return df
 
 def compute_bitcoin_correlation(selected_coins, start_date, end_date):
-    global data_cache
-
     crypto_close_prices = pd.DataFrame()
 
-    # Ensure bitcoin_df's 'Date' column is in datetime format
+    # Load Bitcoin data
     bitcoin_df = data_cache.get("coin_Bitcoin.csv")
     if bitcoin_df is not None:
         bitcoin_df['Date'] = pd.to_datetime(bitcoin_df['Date'])
         filtered_bitcoin_df = bitcoin_df[(bitcoin_df['Date'] >= start_date) & (bitcoin_df['Date'] <= end_date)]
         crypto_close_prices['Bitcoin'] = filtered_bitcoin_df.set_index('Date')['Close']
 
+    # Load data for other selected coins
     for coin in selected_coins:
-        fileName = "coin_" + coin + ".csv"
-        coin_df = data_cache.get(fileName)
-
+        if coin == 'Bitcoin':  # Skip Bitcoin as it's already added
+            continue
+        coin_df = data_cache.get(f"coin_{coin}.csv")
         if coin_df is not None:
-            # Ensure coin_df's 'Date' column is in datetime format
             coin_df['Date'] = pd.to_datetime(coin_df['Date'])
             filtered_coin_df = coin_df[(coin_df['Date'] >= start_date) & (coin_df['Date'] <= end_date)]
+            crypto_close_prices[coin] = filtered_coin_df.set_index('Date')['Close']
 
-            # Merge operation
-            merged_df = filtered_bitcoin_df.merge(filtered_coin_df[['Date', 'Close']], on='Date', how='outer', suffixes=('', f'_{coin}'))
-            crypto_close_prices[coin] = merged_df.set_index('Date')[f'Close_{coin}']
+    # Compute and return the correlation matrix
+    return crypto_close_prices.corr()
 
-    correlation_matrix = crypto_close_prices.corr()
-
-    if 'Bitcoin' in correlation_matrix.columns:
-        return correlation_matrix
-    else:
-        raise ValueError("Bitcoin data not found. Ensure 'coin_Bitcoin.csv' is present and contains the required data.")
 
    
 
@@ -190,17 +182,36 @@ def calculate_start_date(time_range, end_date_str="2021-07-06"):
         start_date = end_date - timedelta(days=2*365)  # 2 years
     elif time_range == 'Last 48 Months':
         start_date = end_date - timedelta(days=4*365)  # 4 years
+    elif time_range == 'BTC Halving 2016-07-09':
+        # Specific dates for the Bitcoin Halving event
+        start_date = datetime.strptime("2016-04-09", '%Y-%m-%d')
+        end_date = datetime.strptime("2016-10-09", '%Y-%m-%d')
+    elif time_range == 'BTC Halving 2020-05-11':
+        # Specific dates for the Bitcoin Halving event
+        start_date = datetime.strptime("2020-03-11", '%Y-%m-%d')
+        end_date = datetime.strptime("2020-08-11", '%Y-%m-%d')
+
     else:
         # Default case, can be adjusted as needed
         start_date = end_date - timedelta(days=6*30)
 
-    return start_date.strftime('%Y-%m-%d'), end_date_str
+    return start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')
 
 def calculate_avg_market_cap(selected_coins, start_date, end_date):
     global data_cache
     market_cap_data = []
 
-    # Calculate average market capitalizations
+    # Calculate total market cap for all coins in the cache over the period
+    total_market_cap = 0
+    for coin_file in data_cache.keys():
+        coin_df = data_cache[coin_file]
+        coin_df['Date'] = pd.to_datetime(coin_df['Date'])
+        filtered_df = coin_df[(coin_df['Date'] >= start_date) & (coin_df['Date'] <= end_date)]
+
+        if 'Marketcap' in filtered_df.columns:
+            total_market_cap += filtered_df['Marketcap'].sum()
+
+    # Calculate and normalize average market caps for selected coins
     for coin in selected_coins:
         file_name = f"coin_{coin}.csv"
         coin_df = data_cache.get(file_name)
@@ -211,21 +222,14 @@ def calculate_avg_market_cap(selected_coins, start_date, end_date):
 
             if 'Marketcap' in filtered_df.columns:
                 avg_market_cap = filtered_df['Marketcap'].mean()
-                market_cap_data.append({'coin': coin, 'avgMarketCap': avg_market_cap})
+                normalized_market_cap = (avg_market_cap / total_market_cap) * 100 if total_market_cap > 0 else 0
+                market_cap_data.append({'coin': coin, 'avgMarketCap': normalized_market_cap})
             else:
                 print(f"Marketcap data not found for {coin}.")
 
-    # Check if market_cap_data is empty
-    if not market_cap_data:
-        print("No market cap data found for the selected coins and date range.")
-        return []
-
-    # Normalize the average market capitalizations
-    max_market_cap = max(data['avgMarketCap'] for data in market_cap_data)
-    for data in market_cap_data:
-        data['avgMarketCap'] = data['avgMarketCap'] / max_market_cap if max_market_cap > 0 else 0
-
     return market_cap_data
+
+
 
 
 cc = calculate_avg_market_cap('Bitcoin', '2021-01-01', '2021-12-31')

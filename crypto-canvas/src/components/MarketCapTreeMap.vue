@@ -1,6 +1,6 @@
 <template>
     <div>
-      <h2>Market Capitalization Treemap</h2>
+      <h2>Average of Market Share (%) for Period</h2>
       <div id="market-cap-treemap"></div> <!-- Container for the D3.js treemap -->
     </div>
   </template>
@@ -14,7 +14,8 @@ export default {
   name: 'MarketCapTreeMap',
   data () {
     return {
-      marketCapData: []
+      marketCapData: [],
+      colorScale: d3.scaleOrdinal(d3.schemeSet2)
     }
   },
   props: {
@@ -53,9 +54,9 @@ export default {
       console.log('Drawing Bar Chart with Data:', data)
 
       // Define dimensions and margins
-      const width = 800
-      const height = 400
-      const margin = { top: 20, right: 20, bottom: 30, left: 40 }
+      const margin = { top: 5, right: 30, bottom: 30, left: 60 }
+      const width = 700 - margin.left - margin.right
+      const height = 280 - margin.top - margin.bottom
       container.select('svg').remove()
 
       // Create SVG container
@@ -85,7 +86,7 @@ export default {
         .attr('width', x.bandwidth())
         .attr('y', d => y(d.avgMarketCap))
         .attr('height', d => height - y(d.avgMarketCap))
-        .style('fill', 'steelblue')
+        .style('fill', d => this.colorScale(d.coin)) // Use the color scale here
 
       // Add the x Axis
       svg.append('g')

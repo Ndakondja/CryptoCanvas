@@ -18,9 +18,6 @@
           <v-list-item-content>
             <v-list-item-title>Market Overview</v-list-item-title>
           </v-list-item-content>
-          <v-list-item-content>
-            <v-list-item-title>Price Chart</v-list-item-title>
-          </v-list-item-content>
         </v-list-item>
       </v-list>
     </v-navigation-drawer>
@@ -29,7 +26,7 @@
       <v-toolbar-title>Crypto Canvas Dashboard</v-toolbar-title>
       <v-select
         v-model="selectedTimeRange"
-        :items="['Last 6 Months', 'Last 12 Months', 'Last 24 Months', 'Last 48 Months']"
+        :items="['Last 6 Months', 'Last 12 Months', 'Last 24 Months', 'Last 48 Months', 'BTC Halving 2016-07-09', 'BTC Halving 2020-05-11', ]"
         label="Select Time Range"
         style="max-width: 180px;"
       ></v-select>
@@ -46,7 +43,10 @@
     <!-- Main Content -->
     <v-main>
       <div v-if="currentTab === 'VolatilityComparison'">
-        <CorrelationMatrix />
+      <correlation-matrix
+        :selected-time-range="selectedTimeRange"
+        :selected-coins="selectedCoins">
+      </correlation-matrix>
         <VolatilityComparison />
         <BitcoinHalving />
       </div>
@@ -59,6 +59,7 @@
 </template>
 
 <script>
+import Axios from 'axios'
 import CorrelationMatrix from './components/CorrelationMatrix.vue'
 import VolatilityComparison from './components/VolatilityComparison.vue'
 import BitcoinHalving from './components/BitcoinHalving.vue'
@@ -78,8 +79,22 @@ export default {
     return {
       currentTab: 'VolatilityComparison',
       selectedTimeRange: 'Last 6 Months',
-      selectedCoins: ['Bitcoin', 'Ethereum', 'XRP'],
-      availableCoins: ['Bitcoin', 'Ethereum', 'XRP', 'Litecoin', 'Cardano']
+      selectedCoins: ['Bitcoin', 'Ethereum', 'Dogecoin', 'Litecoin'],
+      availableCoins: []
+    }
+  },
+  created () {
+    this.fetchAvailableCoins()
+  },
+  methods: {
+    fetchAvailableCoins () {
+      Axios.get('http://127.0.0.1:5000/available-coins') // Update with your API URL if different
+        .then(response => {
+          this.availableCoins = response.data.coins
+        })
+        .catch(error => {
+          console.error('Error fetching available coins:', error)
+        })
     }
   },
   watch: {

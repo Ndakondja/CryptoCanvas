@@ -1,6 +1,6 @@
 <template>
     <div>
-        <h2>Cryptocurrency Price Chart</h2>
+        <h2>Cryptocurrency Price over Period</h2>
         <div id="price-chart"></div> <!-- Container for the D3.js chart -->
     </div>
 </template>
@@ -15,9 +15,7 @@ export default {
   props: {
     selectedTimeRange: String,
     selectedCoins: {
-      type: Array,
-      default: () => ['Bitcoin', 'Ethereum', 'XRP'] // Default coins
-
+      type: Array
     }
   },
   mounted () {
@@ -25,7 +23,8 @@ export default {
   },
   data () {
     return {
-      pricesData: {}
+      pricesData: {},
+      colorScale: d3.scaleOrdinal(d3.schemeSet2)
     }
   },
   watch: {
@@ -66,7 +65,7 @@ export default {
     drawPriceChart () {
       const margin = { top: 5, right: 30, bottom: 30, left: 60 }
       const width = 700 - margin.left - margin.right
-      const height = 300 - margin.top - margin.bottom
+      const height = 280 - margin.top - margin.bottom
       d3.select('#price-chart').select('svg').remove()
 
       const svg = d3.select('#price-chart')
@@ -105,15 +104,16 @@ export default {
 
           )
       })
+      // Legend code
       const legendYPosition = height + margin.bottom + margin.top - 10
-
       const legendSpace = width / Object.keys(this.pricesData).length // Spacing for legend items
+
       Object.keys(this.pricesData).forEach((coin, index) => {
         svg.append('text')
           .attr('x', (legendSpace / 2) + index * legendSpace) // Spacing of legend items
           .attr('y', legendYPosition + 5)
           .attr('class', 'legend') // Style the legend
-          .style('fill', color(coin)) // Add the color
+          .style('fill', this.colorScale(coin)) // Use the same color scale
           .text(coin)
 
         // Optional: Add colored rectangles next to text if needed
@@ -122,7 +122,7 @@ export default {
           .attr('y', legendYPosition - 5)
           .attr('width', 10)
           .attr('height', 10)
-          .style('fill', color(coin))
+          .style('fill', this.colorScale(coin)) // Use the same color scale
       })
 
       // Tooltip for line hover

@@ -14,13 +14,20 @@ def available_coins():
 
 @app.route('/getCorrelationMatrix', methods=['GET'])
 def getCorrelationMatrix():
-    getCorrelationMatrix
-    correlation_matrix = data_processing.correlationMatrix()
-    matrix = correlation_matrix.values.tolist()
-    # Get the cryptocurrency labels from the column names of the DataFrame
-    labels = correlation_matrix.index.tolist()
-    # Return both the matrix and the labels
-    return jsonify({'matrix': matrix, 'labels': labels})
+    time_range = request.args.get('timeRange')
+    coins = request.args.get('coins', '').split(',')
+
+    # Compute start and end dates based on the time range
+    start_date, end_date = data_processing.calculate_start_date(time_range)
+    
+    # Call the function to compute the correlation matrix
+    try:
+        correlation_matrix = data_processing.compute_bitcoin_correlation(coins, start_date, end_date)
+        matrix = correlation_matrix.values.tolist()
+        labels = correlation_matrix.columns.tolist()
+        return jsonify({'matrix': matrix, 'labels': labels})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/getCoinVolatilityComparisons', methods=['GET'])

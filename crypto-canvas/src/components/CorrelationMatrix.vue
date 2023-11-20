@@ -1,6 +1,9 @@
 <!-- eslint-disable no-multiple-empty-lines -->
 <template>
-  <div id="heatmap"></div>
+  <div>
+      <h2>Bitcoin Correlation Heatmap</h2>
+      <div id="heatmap"></div> <!-- Container for the D3.js treemap -->
+    </div>
 </template>
 
 <script>
@@ -11,13 +14,38 @@ import config from './config'
 export default {
   // eslint-disable-next-line vue/multi-word-component-names
   name: 'Heatmap',
+  props: {
+    selectedTimeRange: {
+      type: String,
+      default: ''
+    },
+    selectedCoins: {
+      type: Array,
+      default: () => []
+    }
+  },
   mounted () {
     this.fetchCorrelationMatrix()
+  },
+  // CorrelationMatrix.vue
+  watch: {
+    selectedTimeRange () {
+      this.fetchCorrelationMatrix()
+    },
+    selectedCoins () {
+      this.fetchCorrelationMatrix()
+    }
   },
   methods: {
     async fetchCorrelationMatrix () {
       try {
-        const response = await axios.get(config.backendApiUrl.concat('/getCorrelationMatrix'))
+        const coinQueryParam = this.selectedCoins.join(',')
+        const response = await axios.get(`${config.backendApiUrl}/getCorrelationMatrix`, {
+          params: {
+            timeRange: this.selectedTimeRange,
+            coins: coinQueryParam
+          }
+        })
         this.drawHeatmap(response.data.matrix, response.data.labels)
       } catch (error) {
         console.error('Error fetching correlation matrix:', error)
@@ -38,7 +66,7 @@ export default {
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom)
         .append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`)
+        .attr('transform', `translate(${margin.left},${margin.top - 80})`)
 
       // Build X scales and axis
       const x = d3.scaleBand()
