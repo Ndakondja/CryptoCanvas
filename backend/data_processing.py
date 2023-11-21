@@ -176,11 +176,11 @@ def calculate_start_date(time_range, end_date_str="2021-07-06"):
     end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
     if time_range == 'Last 6 Months':
         start_date = end_date - timedelta(days=6*30)  # Approximately 6 months
-    elif time_range == 'Last 12 Months':
+    elif time_range == '1 Year':
         start_date = end_date - timedelta(days=12*30)  # Approximately 12 months
-    elif time_range == 'Last 24 Months':
+    elif time_range == '2 Years':
         start_date = end_date - timedelta(days=2*365)  # 2 years
-    elif time_range == 'Last 48 Months':
+    elif time_range == '4 Years':
         start_date = end_date - timedelta(days=4*365)  # 4 years
     elif time_range == 'BTC Halving 2016-07-09':
         # Specific dates for the Bitcoin Halving event
@@ -276,10 +276,7 @@ print(stats)
 
 cc = calculate_avg_market_cap('Bitcoin', '2021-01-01', '2021-12-31')
 print(cc)
-def volatility():
-    selected_coins = ["Cardano", "XRP", "Litecoin", "Ethereum", "Bitcoin"] 
-    start_date = "2021-01-01"
-    end_date = "2021-12-31" 
+def volatility(selected_coins,start_date,end_date):
     volatility= compute_rolling_volatility(selected_coins,start_date,end_date) 
     return volatility
     

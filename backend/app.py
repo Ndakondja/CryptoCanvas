@@ -34,7 +34,14 @@ def getCorrelationMatrix():
 
 @app.route('/getCoinVolatilityComparisons', methods=['GET'])
 def getCoinVolatilityComparisons():
-    volatilityComparison = data_processing.volatility()
+    # Get parameters from the query string
+    time_range = request.args.get('timeRange', '6m')
+    selected_coins = request.args.get('coins', '').split(',')
+
+    # Convert date strings to datetime objects
+    start_date, end_date = data_processing.calculate_start_date(time_range)
+    
+    volatilityComparison = data_processing.volatility(selected_coins, start_date, end_date)
     volatility_data = volatilityComparison.reset_index().melt(id_vars=['Date'], var_name='Coin', value_name='Volatility').to_dict(orient='records')
 
     # Return the data in JSON format

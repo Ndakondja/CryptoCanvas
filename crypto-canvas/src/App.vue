@@ -31,7 +31,7 @@
       />
       <v-select
         v-model="selectedTimeRange"
-        :items="['Last 6 Months', 'Last 12 Months', 'Last 24 Months', 'Last 48 Months', 'BTC Halving 2016-07-09', 'BTC Halving 2020-05-11', ]"
+        :items="['Last 6 Months', '1 Year', '2 Years', '4 Years', 'BTC Halving 2016-07-09', 'BTC Halving 2020-05-11', ]"
         label="Select Time Range"
         style="max-width: 180px;"
       ></v-select>
@@ -159,7 +159,7 @@ export default {
 }
 
 body, .v-application {
-  background-color: #e6dcf8; /* Light purple color */
+  background-color: #ffffff; /* Light purple color */
 }
 .market-overview-container {
   display: flex;

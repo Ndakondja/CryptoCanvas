@@ -90,9 +90,82 @@ export default {
         .select('.domain').remove()
 
       // Build color scale
-      const myColor = d3.scaleSequential()
-        .interpolator(d3.interpolateInferno)
-        .domain([0, 1])
+      // eslint-disable-next-line indent
+    // Create a diverging color scale
+      const myColor = d3.scaleDiverging()
+        .interpolator(d3.interpolateRdYlBu) // This is a common diverging color interpolator
+        .domain([-1, 0, 1])
+
+      // After your heatmap squares have been added:
+      // Assume myColor is your color scale
+
+      // Define the legend
+      const legendWidth = 300
+      const legendHeight = 20
+      const legendMargin = { top: 10, right: 60, bottom: 10, left: 60 }
+
+      // Append a defs (for definition) element to your SVG
+      const defs = svg.append('defs')
+
+      // Append a linearGradient element to the defs and give it a unique id
+      const linearGradient = defs.append('linearGradient')
+        .attr('id', 'linear-gradient')
+
+      // Horizontal gradient
+      linearGradient
+        .attr('x1', '0%')
+        .attr('y1', '0%')
+        .attr('x2', '100%')
+        .attr('y2', '0%')
+
+      // Set the color for the start (0%)
+      linearGradient.append('stop')
+        .attr('offset', '0%')
+        .attr('stop-color', myColor(0)) // light color
+
+      // Set the color for the end (100%)
+      linearGradient.append('stop')
+        .attr('offset', '100%')
+        .attr('stop-color', myColor(1)) // dark color
+
+      // Draw the rectangle and fill with gradient
+      svg.append('rect')
+        .attr('width', legendWidth)
+        .attr('height', legendHeight)
+        .style('fill', 'url(#linear-gradient)')
+        .attr('transform', `translate(${margin.left}, ${height + margin.top + legendMargin.top})`)
+
+      // Append title
+      svg.append('text')
+        .attr('class', 'legend-title')
+        .attr('x', margin.left)
+        .attr('y', height + margin.top)
+        .style('text-anchor', 'left')
+        .text('Correlation Scale')
+
+      // Create a scale and axis for the legend
+      const legendScale = d3.scaleLinear()
+        .domain([-1, 1])
+        .range([0, legendWidth])
+
+      const legendAxis = d3.axisBottom(legendScale)
+        .ticks(5)
+        .tickFormat(d3.format('.1f'))
+
+      svg.append('g')
+        .attr('class', 'legend-axis')
+        .attr('transform', `translate(${margin.left}, ${height + margin.top + legendHeight + legendMargin.top})`)
+        .call(legendAxis)
+      svg.selectAll()
+        .data(matrix.flatMap((row, i) => row.map((value, j) => ({ row: labels[i], column: labels[j], value }))))
+        .enter()
+        .append('text')
+        .text(d => d.value.toFixed(2))
+        .attr('x', d => x(d.column) + x.bandwidth() / 2)
+        .attr('y', d => y(d.row) + y.bandwidth() / 2)
+        .style('text-anchor', 'middle')
+        .style('alignment-baseline', 'central')
+        .style('fill', d => myColor(d.value))
 
       // create a tooltip
       const tooltip = d3.select('#heatmap')
@@ -108,7 +181,10 @@ export default {
 
       // Three functions that change the tooltip when user hovers, moves, or leaves a cell
       const mouseover = function (event, d) {
-        tooltip.style('opacity', 1)
+        tooltip
+          .html(`The correlation between ${d.row} and ${d.column} is ${d.value.toFixed(2)}.<br/>
+           A value close to 1 indicates a strong positive relationship, while a value close to -1 indicates a strong negative relationship.`)
+          .style('opacity', 1)
         d3.select(this)
           .style('stroke', 'black')
           .style('opacity', 1)
