@@ -30,7 +30,7 @@ export default {
     },
     drawVolatilityChart (data) {
       // Parse data
-      const parseTime = d3.timeParse('%a, %d %b %Y %H:%M:%S GMT')
+      const parseTime = d3.timeParse('%Y-%m-%dT%H:%M:%S.%LZ') // Modify this to match your date format
 
       data.forEach(d => {
         d.date = parseTime(d.Date) // Parse the date

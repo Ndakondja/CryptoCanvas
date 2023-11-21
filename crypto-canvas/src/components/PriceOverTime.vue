@@ -1,6 +1,6 @@
 <template>
     <div>
-        <h2>Cryptocurrency Price over Period</h2>
+        <h2>Cryptocurrency Price Over Period</h2>
         <div id="price-chart"></div> <!-- Container for the D3.js chart -->
     </div>
 </template>
@@ -124,11 +124,31 @@ export default {
           .attr('height', 10)
           .style('fill', this.colorScale(coin)) // Use the same color scale
       })
+      // After defining your scales and axes (right after the y axis is appended):
+      svg.append('g')
+        .call(d3.axisLeft(y))
+      // Y Axis title
+      svg.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', 0 - margin.left)
+        .attr('x', 0 - (height / 2))
+        .attr('dy', '1em')
+        .style('text-anchor', 'middle')
+        .style('font-size', '10px') // Adjust t
+        .text('USD') // Replace with your desired y-axis label
 
       // Tooltip for line hover
       const tooltip = d3.select('#price-chart').append('div')
         .attr('class', 'tooltip')
+        .append('div')
         .style('opacity', 0)
+        .attr('class', 'tooltip')
+        .style('background-color', 'white')
+        .style('border', 'solid')
+        .style('border-width', '2px')
+        .style('border-radius', '5px')
+        .style('padding', '5px')
+        .style('position', 'absolute')
 
       Object.keys(this.pricesData).forEach(coin => {
         const line = svg.append('path')
@@ -146,8 +166,8 @@ export default {
           .on('mousemove', function (event, d) {
             const [xPosition, yPosition] = d3.pointer(event, this)
             tooltip.html(`Price: ${y.invert(yPosition).toFixed(2)}`)
-              .style('left', (xPosition + 190) + 'px')
-              .style('top', (yPosition + 50) + 'px')
+              .style('left', (xPosition + 40) + 'px')
+              .style('top', (yPosition - 360) + 'px')
           })
           .on('mouseleave', () => tooltip.style('opacity', 0))
       })
@@ -159,13 +179,13 @@ export default {
 <style>
 h2 {
   text-align: left;
-  margin-bottom: 10px; /* Reduced bottom margin */
   margin-top: 20px; /* Add top margin if needed */
-  margin-left: 60px;
+  margin-left: 100px;
 }
 
 #price-chart {
-  padding-top: 20px; /* Add padding to the top of the chart container */
+  padding-top: 20px;
+  padding-left: 20px;
 }
 
 .tooltip {

@@ -229,6 +229,48 @@ def calculate_avg_market_cap(selected_coins, start_date, end_date):
 
     return market_cap_data
 
+import pandas as pd
+
+def calculate_coin_stats(selected_coins, start_date, end_date):
+    global data_cache
+    coin_stats = []
+
+    for coin in selected_coins:
+        file_name = f"coin_{coin}.csv"
+        coin_df = data_cache.get(file_name)
+
+        if coin_df is not None:
+            coin_df['Date'] = pd.to_datetime(coin_df['Date'])
+            filtered_df = coin_df[(coin_df['Date'] >= start_date) & (coin_df['Date'] <= end_date)]
+
+            if not filtered_df.empty and 'Close' in filtered_df.columns:
+                average_price = filtered_df['Close'].mean()
+                std_dev = filtered_df['Close'].std()
+
+                # Percentage growth calculation
+                start_price = filtered_df.iloc[0]['Close']
+                end_price = filtered_df.iloc[-1]['Close']
+                percentage_growth = ((end_price - start_price) / start_price) * 100
+
+                coin_stats.append({
+                    'coin': coin,
+                    'average_price': average_price,
+                    'std_dev': std_dev,
+                    'percentage_growth': percentage_growth
+                })
+            else:
+                print(f"Price data not found for {coin} in the specified date range.")
+        else:
+            print(f"Data for {coin} not found.")
+
+    return coin_stats
+
+# Example usage:
+selected_coins = ['Bitcoin', 'Ethereum', 'XRP']
+start_date = pd.to_datetime('2021-01-01')
+end_date = pd.to_datetime('2021-12-31')
+stats = calculate_coin_stats(selected_coins, start_date, end_date)
+print(stats)
 
 
 
@@ -247,6 +289,7 @@ def correlationMatrix():
     end_date = "2021-12-31" 
     correlations = compute_bitcoin_correlation(selected_coins, start_date, end_date)
     return correlations
+
 
 
 

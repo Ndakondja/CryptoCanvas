@@ -2,6 +2,8 @@ from flask import Flask, jsonify, request  # Add 'request' to the imports
 from flask_cors import CORS
 import data_processing
 from flask import url_for
+import pandas as pd
+
 
 app = Flask(__name__)
 CORS(app)
@@ -38,7 +40,6 @@ def getCoinVolatilityComparisons():
     # Return the data in JSON format
     return jsonify(volatility_data)
    #sonify what is being returned
-
 
 
 @app.route('/generate', methods=['GET'])
@@ -83,6 +84,21 @@ def get_market_cap_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/getCoinStats', methods=['GET'])
+def get_coin_stats():
+    # Get parameters from the query string
+    time_range = request.args.get('timeRange', '6m')
+    selected_coins = request.args.get('coins', '').split(',')
+
+    # Convert date strings to datetime objects
+    start_date, end_date = data_processing.calculate_start_date(time_range)
+
+    # Call the function to calculate stats
+    try:
+        stats = data_processing.calculate_coin_stats(selected_coins, start_date, end_date)
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
