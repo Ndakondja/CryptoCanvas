@@ -3,6 +3,7 @@
   <div>
       <h2>Bitcoin Correlation Heatmap</h2>
       <div id="heatmap"></div> <!-- Container for the D3.js treemap -->
+
     </div>
 </template>
 
@@ -24,6 +25,7 @@ export default {
       default: () => []
     }
   },
+
   mounted () {
     this.fetchCorrelationMatrix()
   },
@@ -179,20 +181,20 @@ export default {
         .style('padding', '5px')
         .style('position', 'absolute')
 
-      // Three functions that change the tooltip when user hovers, moves, or leaves a cell
       const mouseover = function (event, d) {
         tooltip
-          .html(`The correlation between ${d.row} and ${d.column} is ${d.value.toFixed(2)}.<br/>
-           A value close to 1 indicates a strong positive relationship, while a value close to -1 indicates a strong negative relationship.`)
+          .html(`Correlation: ${d.value.toFixed(2)}`)
           .style('opacity', 1)
+          .style('left', (event.x + 10) + 'px')
+          .style('top', (event.y - 10) + 'px')
         d3.select(this)
           .style('stroke', 'black')
           .style('opacity', 1)
       }
       const mousemove = function (event, d) {
-        tooltip.html('Correlation: ' + d.value.toFixed(2))
-          .style('left', (event.x) + 'px')
-          .style('top', (event.y) + 'px')
+        tooltip
+          .style('left', (event.x + 10) + 'px') // Tooltip follows the mouse, adjust as needed
+          .style('top', (event.y - 10) + 'px')
       }
       const mouseleave = function (event, d) {
         tooltip.style('opacity', 0)
@@ -229,6 +231,14 @@ export default {
 .tooltip {
   position: absolute;
   text-align: center;
-  transition: opacity 0.3s;
+  padding: 8px;
+  font: 12px sans-serif;
+  background: rgba(255, 255, 255, 0.9); /* Semi-transparent white background */
+  border: 1px solid #333; /* Solid border for contrast */
+  border-radius: 5px;
+  pointer-events: none; /* Prevents the tooltip from capturing mouse events */
+  z-index: 20; /* Ensures the tooltip is above other elements */
+  transition: opacity 0.3s, left 0.3s, top 0.3s; /* Smooth transitions for opacity and position */
 }
+
 </style>

@@ -56,7 +56,7 @@
       </div>
       <div v-if="currentTab === 'VolatilityComparison'">
           <correlation-matrix :selected-time-range="selectedTimeRange" :selected-coins="selectedCoins"></correlation-matrix>
-          <VolatilityComparison />
+          <VolatilityComparison :selected-time-range="selectedTimeRange" :selected-coins="selectedCoins"></VolatilityComparison>
           <BitcoinHalving />
       </div>
     </v-main>
@@ -119,6 +119,7 @@ export default {
 </script>
 
 <style scoped>
+
 .v-app-bar {
   background: linear-gradient(90deg, rgba(39,37,89,1) 0%, rgba(69,31,152,1) 10%, rgba(0,212,255,1) 100%) !important;
 }
